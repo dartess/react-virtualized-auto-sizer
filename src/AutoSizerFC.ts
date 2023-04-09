@@ -6,29 +6,37 @@ import {
   useState,
   useRef,
   useEffect,
+  DOMElement,
+  DOMAttributes,
 } from "react";
 
 // @ts-ignore
 import { createDetectElementResize } from "../vendor/detectElementResize";
 
-export type Size = {
+export type Size<
+  TDisableHeight extends boolean,
+  TDisableWidth extends boolean
+> = {
   // Legacy width and height parameters (offsetWidth and offsetHeight)
-  height?: number;
-  width?: number;
+  height: TDisableHeight extends true ? undefined : number;
+  width: TDisableWidth extends true ? undefined : number;
 
   // Take transform:scale into account (getBoundingClientRect)
-  scaledHeight?: number;
-  scaledWidth?: number;
+  scaledHeight: TDisableHeight extends true ? undefined : number;
+  scaledWidth: TDisableWidth extends true ? undefined : number;
 };
 
-export type Props = {
-  children: (size: Size) => ReactElement;
+export type Props<
+  TDisableHeight extends boolean,
+  TDisableWidth extends boolean
+> = {
+  children: (size: Size<TDisableHeight, TDisableWidth>) => ReactElement;
   defaultHeight?: number;
   defaultWidth?: number;
-  disableHeight?: boolean;
-  disableWidth?: boolean;
+  disableHeight?: TDisableHeight;
+  disableWidth?: TDisableWidth;
   nonce?: string;
-  onResize?: (size: Size) => void;
+  onResize?: (size: Size<TDisableHeight, TDisableWidth>) => void;
   tagName?: string;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onResize">;
 
@@ -46,9 +54,14 @@ type DetectElementResize = {
   removeResizeListener: ResizeHandler;
 };
 
-let renderCount = 0;
+type Return = DOMElement<DOMAttributes<Element>, Element>;
 
-export const AutoSizer = ({
+export function AutoSizer(props: Props<false, false>): Return;
+export function AutoSizer(props: Props<true, false>): Return;
+export function AutoSizer(props: Props<false, true>): Return;
+export function AutoSizer(props: Props<true, true>): Return;
+export function AutoSizer(props: Props<boolean, boolean>): Return;
+export function AutoSizer({
   children,
   nonce,
   onResize = () => {},
@@ -59,7 +72,7 @@ export const AutoSizer = ({
   style = {},
   tagName = "div",
   ...rest
-}: Props) => {
+}: Props<boolean, boolean>): Return {
   const [state, setState] = useState<State>({
     height: defaultHeight || 0,
     scaledHeight: defaultHeight || 0,
@@ -166,7 +179,7 @@ export const AutoSizer = ({
   // Inner component should overflow and use calculated width/height.
   // See issue #68 for more information.
   const outerStyle: CSSProperties = { overflow: "visible" };
-  const childParams: Size = {};
+  const childParams = {} as Size<boolean, boolean>;
 
   // Avoid rendering children before the initial measurements have been collected.
   // At best this would just be wasting cycles.
@@ -202,4 +215,4 @@ export const AutoSizer = ({
     },
     !bailoutOnChildren && children(childParams)
   );
-};
+}
